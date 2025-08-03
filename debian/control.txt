@@ -1,0 +1,11 @@
+Package: md5fx
+Version: 1.0.0-1
+Section: misc
+Maintainer: Unknown <Unknown>
+Priority: optional
+Architecture: amd64
+Provides: demo
+Description: demo
+Depends: xdg-utils 
+Installed-Size: 114830
+

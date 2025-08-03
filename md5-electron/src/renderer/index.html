@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MD5 vue</title>
+    <link rel="stylesheet" href="./assets/pure-min.css" />
+    <style>
+      .button-xsmall {
+        font-size: 70%;
+      }
+
+      .button-small {
+        font-size: 85%;
+      }
+
+      .button-fill {
+        width: 100%;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <p>Select a file to compute MD5 checksum (or drag and drop a file onto this window)</p>
+      <table class="pure-table">
+        <tr>
+          <td><input type="text" v-model="filepath" /></td>
+          <td>
+            <button
+              type="submit"
+              class="pure-button button-fill"
+              v-on:click="onSelect"
+              :disabled="running"
+            >
+              Browse..
+            </button>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <progress id="file" v-bind:max="total" v-bind:value="progress" style="width: 100%">
+              70%
+            </progress>
+          </td>
+          <td>
+            <button
+              type="submit"
+              class="pure-button button-fill"
+              v-on:click="onCancel"
+              :disabled="!running"
+            >
+              Cancel
+            </button>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <p>File Size: {{ filesize > 0 ? `${filesize} bytes`: 'n/a' }}</p>
+          </td>
+          <td></td>
+        </tr>
+
+        <tr>
+          <td><input type="text" v-model="tMD5" readonly placeholder="n/a" /></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <input
+              type="text"
+              v-model="tVerify"
+              placeholder="paste its original md5 value to verify"
+            />
+          </td>
+          <td>
+            <button type="submit" class="pure-button button-fill" v-on:click="onVerify">
+              Verify
+            </button>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </body>
+
+  <script src="./assets/vue.js"></script>
+  <script>
+    var app = new Vue({
+      el: '#app',
+      data: {
+        filepath: '',
+        filesize: 0,
+        progress: 0,
+        total: 100,
+        tMD5: '',
+        tVerify: '',
+        running: false
+      },
+      mounted() {
+        window.electron.ipcRenderer.on('async-progress', function (event, arg) {
+          app.progress = arg
+        })
+        window.electron.ipcRenderer.on('async-md5sum', function (event, arg) {
+          app.tMD5 = arg
+          app.progress = app.total
+        })
+        window.electron.ipcRenderer.on('async-close', function (event, arg) {
+          app.running = false
+        })
+      },
+      methods: {
+        onSelect() {
+          const [filepath, size] = window.electron.ipcRenderer.sendSync('file-dialog')
+          if (filepath) {
+            this.filepath = filepath
+            this.filesize = size
+            this.total = size / 65536
+            this.running = true
+          }
+        },
+        onCancel() {
+          window.electron.ipcRenderer.send('task-cancel')
+          this.progress = 0
+          this.tMD5 = ''
+          this.tVerify = ''
+        },
+        onVerify() {
+          const msg = `Original: ${this.tMD5}\nTarget:${this.tVerify}`
+          if (this.tMD5 && this.tMD5 == this.tVerify) {
+            alert('Matched \n\n' + msg)
+          } else {
+            alert('Not Matched \n\n' + msg)
+          }
+        }
+      }
+    })
+  </script>
+</html>
